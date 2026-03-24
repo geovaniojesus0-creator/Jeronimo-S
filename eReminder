@@ -1,0 +1,966 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eReminder</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- SIDEBAR RETRÔ-MODERNO -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-dot red"></span>
+                    <span class="logo-dot yellow"></span>
+                    <span class="logo-dot green"></span>
+                    <h1>eReminder</h1>
+                </div>
+                <p class="retro-tag">vintage • glass • 2026</p>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li data-view="today" class="nav-item active">
+                        <span class="icon">📅</span>
+                        <span>Hoje</span>
+                    </li>
+                    <li data-view="scheduled" class="nav-item">
+                        <span class="icon">⏰</span>
+                        <span>Agendados</span>
+                    </li>
+                    <li data-view="all" class="nav-item">
+                        <span class="icon">📋</span>
+                        <span>Todos</span>
+                    </li>
+                    <li data-view="flagged" class="nav-item">
+                        <span class="icon">⭐</span>
+                        <span>Sinalizados</span>
+                    </li>
+                    <li data-view="completed" class="nav-item">
+                        <span class="icon">✅</span>
+                        <span>Concluídos</span>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="new-list-btn" class="retro-btn">
+                    <span class="icon">+</span> Nova Lista
+                </button>
+                <div class="storage-info">💾 12,4 MB usados • retrô edition</div>
+            </div>
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="main-content">
+            <!-- TOP BAR TRANSPARENTE -->
+            <header class="top-bar">
+                <div class="list-header">
+                    <h2 id="current-list-title">Hoje</h2>
+                    <span id="count-badge" class="count-badge">3</span>
+                </div>
+                
+                <div class="search-container">
+                    <input type="text" id="search-input" placeholder="🔎 Pesquisar lembretes…">
+                </div>
+
+                <div class="top-actions">
+                    <button id="sort-btn" class="icon-btn" title="Ordenar">↕️</button>
+                    <button id="calendar-btn" class="icon-btn" title="Ver calendário">🗓️</button>
+                </div>
+            </header>
+
+            <!-- LISTA DE LEMBRETES -->
+            <div class="reminders-container">
+                <ul id="reminders-list" class="reminders-list"></ul>
+
+                <!-- BARRA NOVA LEMBRETE (estilo Apple) -->
+                <div class="new-reminder-bar">
+                    <div class="new-input-wrapper">
+                        <span class="plus-icon">+</span>
+                        <input type="text" id="quick-title" placeholder="Nova lembrete… (pressiona Enter)">
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL DETALHES (glassmorphism total) -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title-text">Nova Lembrete</h3>
+                <button id="close-modal" class="close-btn">✕</button>
+            </div>
+            
+            <form id="reminder-form">
+                <input type="text" id="modal-title" placeholder="Título da lembrete" required>
+                
+                <textarea id="modal-notes" placeholder="Notas adicionais… (opcional)"></textarea>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Data &amp; Hora</label>
+                        <input type="datetime-local" id="modal-due" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Prioridade</label>
+                        <select id="modal-priority">
+                            <option value="0">Nenhuma</option>
+                            <option value="1">! Baixa</option>
+                            <option value="2">!! Média</option>
+                            <option value="3">!!! Alta</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-toggle">
+                    <input type="checkbox" id="modal-flagged">
+                    <label for="modal-flagged">⭐ Sinalizar com bandeira</label>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" id="delete-btn" class="delete-btn">Eliminar</button>
+                    <div>
+                        <button type="button" id="cancel-btn" class="cancel-btn">Cancelar</button>
+                        <button type="submit" class="save-btn">Salvar Lembrete</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST RETRÔ -->
+    <div id="toast" class="toast">✅ Lembrete adicionado com sucesso!</div>
+
+    <script src="script.js"></script>
+</body>
+</html><style>/* styles.css - DESIGN ÚNICO: RETRÔ + GLASSMORPHISM + APPLE */
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+    --glass: rgba(255, 255, 255, 0.09);
+    --glass-border: rgba(255, 255, 255, 0.18);
+    --accent: #00f7ff;
+    --retro-green: #39ff14;
+    --text: #f0f0f0;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: linear-gradient(135deg, #0a0a0a, #1a0033);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+}
+
+/* EFEITO RETRÔ CRT - SCANLINES + GLOW */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 2px,
+        rgba(0, 247, 255, 0.07) 2px,
+        rgba(0, 247, 255, 0.07) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+    animation: scanline 8s linear infinite;
+    box-shadow: inset 0 0 80px rgba(0, 247, 255, 0.15);
+}
+
+@keyframes scanline {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 100%; }
+}
+
+/* CONTAINER PRINCIPAL */
+.container {
+    display: flex;
+    height: 100vh;
+    box-shadow: 0 0 60px rgba(0, 247, 255, 0.3);
+    border-radius: 20px;
+    overflow: hidden;
+    margin: 20px;
+    background: rgba(10, 10, 10, 0.6);
+    backdrop-filter: blur(30px);
+}
+
+/* SIDEBAR */
+.sidebar {
+    width: 280px;
+    background: var(--glass);
+    backdrop-filter: blur(30px);
+    border-right: 1px solid var(--glass-border);
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 4px 0 30px rgba(0, 0, 0, 0.4);
+}
+
+.sidebar-header {
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.logo-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.red { background: #ff5f57; }
+.yellow { background: #ffbc2e; }
+.green { background: #28c840; }
+
+.logo h1 {
+    font-family: 'VT323', monospace;
+    font-size: 28px;
+    letter-spacing: 2px;
+    background: linear-gradient(90deg, #00f7ff, #ff00ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.retro-tag {
+    font-family: 'VT323', monospace;
+    font-size: 13px;
+    color: var(--retro-green);
+    letter-spacing: 3px;
+    opacity: 0.7;
+}
+
+.sidebar-nav ul {
+    list-style: none;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    margin-bottom: 4px;
+    border-radius: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-item:hover {
+    background: rgba(255,255,255,0.1);
+    transform: translateX(6px);
+}
+
+.nav-item.active {
+    background: rgba(0, 247, 255, 0.2);
+    color: var(--accent);
+    box-shadow: 0 0 15px rgba(0, 247, 255, 0.5);
+}
+
+.icon {
+    font-size: 22px;
+    width: 28px;
+}
+
+/* MAIN CONTENT */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: rgba(15, 15, 25, 0.6);
+    backdrop-filter: blur(25px);
+}
+
+.top-bar {
+    background: var(--glass);
+    backdrop-filter: blur(30px);
+    border-bottom: 1px solid var(--glass-border);
+    padding: 18px 30px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.list-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+#current-list-title {
+    font-size: 26px;
+    font-weight: 600;
+}
+
+.count-badge {
+    background: var(--accent);
+    color: #000;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 9999px;
+    box-shadow: 0 0 10px var(--accent);
+}
+
+.search-container {
+    flex: 1;
+    max-width: 420px;
+}
+
+#search-input {
+    width: 100%;
+    padding: 12px 20px 12px 48px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--glass-border);
+    border-radius: 9999px;
+    color: white;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s;
+}
+
+#search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(0, 247, 255, 0.3);
+}
+
+.top-actions button {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    transition: 0.2s;
+}
+
+.top-actions button:hover {
+    background: rgba(0, 247, 255, 0.15);
+}
+
+/* LISTA */
+.reminders-container {
+    flex: 1;
+    padding: 20px 30px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent) transparent;
+}
+
+.reminders-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.reminder-item {
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+}
+
+.reminder-item:hover {
+    transform: scale(1.02);
+    box-shadow: 0 10px 30px rgba(0, 247, 255, 0.25);
+}
+
+.reminder-item input[type="checkbox"] {
+    width: 26px;
+    height: 26px;
+    border: 3px solid #888;
+    border-radius: 50%;
+    appearance: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.3s;
+}
+
+.reminder-item input[type="checkbox"]:checked {
+    background: linear-gradient(45deg, #00f7ff, #ff00ff);
+    border-color: transparent;
+    box-shadow: 0 0 15px #00f7ff;
+}
+
+.reminder-item input[type="checkbox"]:checked::after {
+    content: "✓";
+    position: absolute;
+    color: #000;
+    font-size: 20px;
+    font-weight: bold;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.title {
+    flex: 1;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.completed .title {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+.due-info {
+    font-size: 14px;
+    font-family: 'VT323', monospace;
+    padding: 4px 14px;
+    border-radius: 9999px;
+    background: rgba(255,255,255,0.1);
+    white-space: nowrap;
+}
+
+.due-info.overdue {
+    background: #ff3b5f;
+    color: white;
+}
+
+.flag {
+    font-size: 22px;
+    color: #ffd700;
+    animation: flag-pulse 2s infinite;
+}
+
+.priority {
+    font-size: 18px;
+    font-weight: bold;
+    color: #ff9500;
+}
+
+/* NEW BAR */
+.new-reminder-bar {
+    background: var(--glass);
+    backdrop-filter: blur(30px);
+    margin: 0 30px 30px;
+    border-radius: 9999px;
+    border: 1px solid var(--glass-border);
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.new-input-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 20px;
+}
+
+.plus-icon {
+    font-size: 28px;
+    color: var(--accent);
+}
+
+#quick-title {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 18px;
+    outline: none;
+    color: white;
+}
+
+/* MODAL */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(12px);
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.modal-content {
+    background: var(--glass);
+    backdrop-filter: blur(40px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    width: 100%;
+    max-width: 480px;
+    padding: 28px;
+    box-shadow: 0 30px 60px rgba(0, 247, 255, 0.4);
+    animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalPop {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+#modal-title-text {
+    font-size: 24px;
+    font-family: 'VT323', monospace;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #aaa;
+    cursor: pointer;
+}
+
+form input, form textarea, form select {
+    width: 100%;
+    padding: 14px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    color: white;
+    margin-bottom: 18px;
+    font-size: 17px;
+}
+
+form textarea {
+    min-height: 110px;
+    resize: none;
+}
+
+.form-row {
+    display: flex;
+    gap: 16px;
+}
+
+.form-group {
+    flex: 1;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    opacity: 0.7;
+    font-family: 'VT323', monospace;
+}
+
+.form-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    font-size: 17px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.save-btn {
+    background: linear-gradient(90deg, #00f7ff, #ff00ff);
+    color: #000;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 17px;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(0, 247, 255, 0.6);
+}
+
+.cancel-btn, .delete-btn {
+    background: transparent;
+    border: 2px solid #666;
+    color: #ddd;
+    padding: 14px 24px;
+    border-radius: 9999px;
+    cursor: pointer;
+}
+
+/* TOAST */
+.toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 247, 255, 0.95);
+    color: #000;
+    padding: 14px 28px;
+    border-radius: 9999px;
+    font-weight: 700;
+    box-shadow: 0 10px 30px rgba(0, 247, 255, 0.5);
+    display: none;
+    z-index: 20000;
+    animation: toastIn 0.4s, toastOut 0.4s 2.6s forwards;
+}
+
+/* RESPONSIVO */
+@media (max-width: 900px) {
+    .container { margin: 0; border-radius: 0; }
+    .sidebar { width: 240px; }
+}</style><script>// script.js - FUNCIONALIDADES 100% IGUAIS AO APPLE + NOTIFICAÇÕES
+let reminders = [];
+let currentView = 'today';
+let editingId = null;
+
+const STORAGE_KEY = 'eReminderData';
+
+// Carregar dados
+function loadReminders() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    reminders = saved ? JSON.parse(saved) : [];
+    
+    // Dados de exemplo (retrô edition)
+    if (reminders.length === 0) {
+        reminders = [
+            {
+                id: Date.now() - 86400000 * 2,
+                title: "Reunião com a equipa de Luanda",
+                notes: "Preparar apresentação do projeto Q3",
+                due: "2026-03-25T14:30",
+                completed: false,
+                flagged: true,
+                priority: 3,
+                notified: false
+            },
+            {
+                id: Date.now() - 86400000,
+                title: "Comprar café na pastelaria",
+                notes: "",
+                due: "2026-03-24T08:00",
+                completed: false,
+                flagged: false,
+                priority: 1,
+                notified: false
+            },
+            {
+                id: Date.now() - 3600000,
+                title: "Enviar relatório ao cliente",
+                notes: "Versão final com gráficos neon",
+                due: "2026-03-26T11:00",
+                completed: true,
+                flagged: false,
+                priority: 2,
+                notified: true
+            }
+        ];
+        saveReminders();
+    }
+}
+
+function saveReminders() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(reminders));
+}
+
+// Formatar data (estilo Apple)
+function formatDue(dueStr) {
+    if (!dueStr) return '';
+    const due = new Date(dueStr);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    if (due < today) return `<span class="due-info overdue">Atrasado • ${due.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'})}</span>`;
+    
+    const diffTime = due - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    let label = '';
+    if (diffDays === 0) label = 'Hoje';
+    else if (diffDays === 1) label = 'Amanhã';
+    else label = due.toLocaleDateString('pt-PT', {weekday: 'short'});
+    
+    return `<span class="due-info">${label} • ${due.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'})}</span>`;
+}
+
+// Filtrar lembretes
+function getFilteredReminders(view) {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart.getTime() + 86400000);
+    
+    let filtered = reminders.filter(r => {
+        if (view === 'completed') return r.completed;
+        return !r.completed;
+    });
+    
+    switch (view) {
+        case 'today':
+            return filtered.filter(r => r.due && new Date(r.due) >= todayStart && new Date(r.due) < todayEnd);
+        case 'scheduled':
+            return filtered.filter(r => r.due);
+        case 'flagged':
+            return filtered.filter(r => r.flagged);
+        case 'all':
+            return filtered;
+        default:
+            return filtered;
+    }
+}
+
+// Renderizar lista
+function renderReminders() {
+    const listEl = document.getElementById('reminders-list');
+    listEl.innerHTML = '';
+    
+    const filtered = getFilteredReminders(currentView);
+    const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+    
+    const finalList = searchTerm 
+        ? filtered.filter(r => r.title.toLowerCase().includes(searchTerm))
+        : filtered;
+    
+    if (finalList.length === 0) {
+        listEl.innerHTML = `<li style="text-align:center; padding:60px 20px; opacity:0.5; font-family:'VT323',monospace;">
+            Nenhum lembrete aqui… ainda. ✨
+        </li>`;
+        return;
+    }
+    
+    finalList.forEach(reminder => {
+        const li = document.createElement('li');
+        li.className = `reminder-item ${reminder.completed ? 'completed' : ''}`;
+        li.innerHTML = `
+            <input type="checkbox" ${reminder.completed ? 'checked' : ''}>
+            <div class="title">${reminder.title}</div>
+            ${reminder.due ? formatDue(reminder.due) : ''}
+            ${reminder.flagged ? `<span class="flag">⭐</span>` : ''}
+            ${reminder.priority > 0 ? `<span class="priority">${'！'.repeat(reminder.priority)}</span>` : ''}
+        `;
+        
+        // Toggle completed
+        li.querySelector('input[type="checkbox"]').addEventListener('click', (e) => {
+            e.stopImmediatePropagation();
+            toggleCompleted(reminder.id);
+        });
+        
+        // Abrir modal ao clicar
+        li.addEventListener('click', () => openModal(reminder.id));
+        
+        listEl.appendChild(li);
+    });
+    
+    // Atualizar contador
+    document.getElementById('count-badge').textContent = finalList.length;
+}
+
+// Alternar concluído
+function toggleCompleted(id) {
+    const reminder = reminders.find(r => r.id === id);
+    if (reminder) {
+        reminder.completed = !reminder.completed;
+        saveReminders();
+        renderReminders();
+    }
+}
+
+// Modal
+function openModal(id = null) {
+    editingId = id;
+    const modal = document.getElementById('modal');
+    const form = document.getElementById('reminder-form');
+    
+    document.getElementById('modal-title-text').textContent = id ? 'Editar Lembrete' : 'Nova Lembrete';
+    document.getElementById('delete-btn').style.display = id ? 'block' : 'none';
+    
+    if (id) {
+        const r = reminders.find(rem => rem.id === id);
+        document.getElementById('modal-title').value = r.title;
+        document.getElementById('modal-notes').value = r.notes || '';
+        document.getElementById('modal-due').value = r.due ? r.due.slice(0, 16) : '';
+        document.getElementById('modal-priority').value = r.priority || 0;
+        document.getElementById('modal-flagged').checked = r.flagged || false;
+    } else {
+        form.reset();
+    }
+    
+    modal.style.display = 'flex';
+}
+
+// Fechar modal
+function closeModal() {
+    const modal = document.getElementById('modal');
+    modal.style.display = 'none';
+    editingId = null;
+}
+
+// Notificações do browser (igual Apple)
+async function requestNotificationPermission() {
+    if (Notification.permission === 'default') {
+        await Notification.requestPermission();
+    }
+}
+
+function showBrowserNotification(title) {
+    if (Notification.permission === 'granted') {
+        new Notification('🔔 eReminder', {
+            body: `Está na hora de: ${title}`,
+            icon: 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27100%27 height=%27100%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%27100%27 rx=%2720%27 fill=%27%2300f7ff%27/%3E%3Ctext x=%2750%27 y=%2765%27 font-size=%2740%27 text-anchor=%27middle%27 fill=%27%23000%27%3E⏰%3C/text%3E%3C/svg%27',
+            tag: 'ereminder-notification'
+        });
+    }
+}
+
+// Verificar lembretes em tempo real
+function checkNotifications() {
+    const now = new Date();
+    reminders.forEach((r, index) => {
+        if (!r.completed && r.due && !r.notified) {
+            const dueDate = new Date(r.due);
+            if (dueDate <= now) {
+                showBrowserNotification(r.title);
+                reminders[index].notified = true;
+                saveReminders();
+                renderReminders();
+            }
+        }
+    });
+}
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', () => {
+    loadReminders();
+    
+    // Render inicial
+    renderReminders();
+    
+    // Sidebar navegação
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            
+            currentView = item.dataset.view;
+            document.getElementById('current-list-title').textContent = item.textContent.trim();
+            renderReminders();
+        });
+    });
+    
+    // Quick add
+    const quickInput = document.getElementById('quick-title');
+    quickInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && quickInput.value.trim()) {
+            const newReminder = {
+                id: Date.now(),
+                title: quickInput.value.trim(),
+                notes: '',
+                due: '',
+                completed: false,
+                flagged: false,
+                priority: 0,
+                notified: false
+            };
+            reminders.unshift(newReminder);
+            saveReminders();
+            renderReminders();
+            quickInput.value = '';
+            
+            // Toast retrô
+            const toast = document.getElementById('toast');
+            toast.textContent = '🚀 Lembrete adicionado!';
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 3000);
+        }
+    });
+    
+    // Modal events
+    document.getElementById('reminder-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const title = document.getElementById('modal-title').value.trim();
+        if (!title) return;
+        
+        const dueValue = document.getElementById('modal-due').value;
+        
+        if (editingId) {
+            const r = reminders.find(rem => rem.id === editingId);
+            r.title = title;
+            r.notes = document.getElementById('modal-notes').value;
+            r.due = dueValue;
+            r.priority = parseInt(document.getElementById('modal-priority').value);
+            r.flagged = document.getElementById('modal-flagged').checked;
+        } else {
+            const newR = {
+                id: Date.now(),
+                title: title,
+                notes: document.getElementById('modal-notes').value,
+                due: dueValue,
+                completed: false,
+                flagged: document.getElementById('modal-flagged').checked,
+                priority: parseInt(document.getElementById('modal-priority').value),
+                notified: false
+            };
+            reminders.unshift(newR);
+        }
+        
+        saveReminders();
+        renderReminders();
+        closeModal();
+    });
+    
+    document.getElementById('close-modal').addEventListener('click', closeModal);
+    document.getElementById('cancel-btn').addEventListener('click', closeModal);
+    
+    // Delete
+    document.getElementById('delete-btn').addEventListener('click', () => {
+        if (editingId && confirm('Eliminar esta lembrete para sempre?')) {
+            reminders = reminders.filter(r => r.id !== editingId);
+            saveReminders();
+            renderReminders();
+            closeModal();
+        }
+    });
+    
+    // Search live
+    document.getElementById('search-input').addEventListener('input', renderReminders);
+    
+    // Pedir permissão de notificações
+    requestNotificationPermission();
+    
+    // Verificar notificações a cada 30 segundos
+    setInterval(checkNotifications, 30000);
+    
+    console.log('%c✅ eReminder carregado com sucesso! Design retrô-glass 100% Apple + único!', 'background:#00f7ff;color:#000;font-family:VT323;padding:4px 8px;border-radius:4px');
+});</script>
